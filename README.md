@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CodeVision AI 🚀
 
 A premium AI-powered visual programming learning platform.
@@ -53,3 +54,7 @@ This project uses Turborepo for monorepo management.
 
 ## License
 MIT
+=======
+# AXIOM
+We aim to revolutionize EdTech by turning passive learning into interactive, AI-driven education. Our platform visualizes code execution, guides students with an AI tutor, enables real coding practice, and builds portfolios that connect learning directly with real career opportunities.
+>>>>>>> 8d893b2682240ee4a0078903d36d456e43d029df
