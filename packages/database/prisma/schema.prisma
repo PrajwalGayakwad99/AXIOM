@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For email login
+  role          Role      @default(STUDENT)
+  
+  // Advanced Auth & Security
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // Soft Delete
+
+  // Relations
+  profile         Profile?
+  sessions        UserSession[]
+  submissions     Submission[]
+  xpTransactions  XPTransaction[]
+  messages        Message[]
+  forumPosts      ForumPost[]
+  forumReplies    ForumReply[]
+  aiConversations AIConversation[]
+  projects        PortfolioProject[]
+  achievements    UserAchievement[]
+  notifications   Notification[]
+  codeExecutions  CodeExecution[]
+  auditLogs       AuditLog[]
+  subscriptions   Subscription[]
+  
+  // Ownerships & Memberships
+  ownedCourses    Course[]        @relation("TeacherCourses")
+  ownedGroups     StudyGroup[]    @relation("GroupOwner")
+  studyGroups     StudyGroup[]    @relation("GroupMembers")
+}
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceInfo   String?
+  ipAddress    String?
+  refreshToken String?  @unique
+  expiresAt    DateTime
+  lastActive   DateTime @default(now())
+  createdAt    DateTime @default(now())
+}
+
+model Profile {
+  id           String @id @default(cuid())
+  userId       String @unique
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio          String?
+  github       String?
+  portfolioUrl String?
+  careerScore  Int    @default(0)
+  totalXp      Int    @default(0)
+  streakDays   Int    @default(0)
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  authorId    String
+  author      User     @relation("TeacherCourses", fields: [authorId], references: [id])
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime? // Soft Delete
+
+  topics      Topic[]
+}
+
+model Topic {
+  id            String   @id @default(cuid())
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title         String
+  order         Int
+  prerequisites String[] // IDs of prerequisite topics
+  deletedAt     DateTime? // Soft Delete
+
+  lessons       Lesson[]
+}
+
+model Lesson {
+  id                String   @id @default(cuid())
+  topicId           String
+  topic             Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  content           String
+  codeExample       String?
+  visualizationData Json?
+  deletedAt         DateTime? // Soft Delete
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  difficulty  String   // EASY, MEDIUM, HARD
+  starterCode String?
+  testCases   Json[]   // [{ input: "...", expectedOutput: "..." }]
+  xpReward    Int      @default(10)
+  deletedAt   DateTime? // Soft Delete
+
+  submissions Submission[]
+}
+
+model Submission {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  code        String
+  status      String   // PASSED, FAILED, PENDING
+  score       Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model CodeExecution {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code          String
+  language      String
+  output        String?
+  executionTime Int      // in ms
+  createdAt     DateTime @default(now())
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  icon        String
+  condition   String
+
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  userId        String
+  achievementId String
+  earnedAt      DateTime @default(now())
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+}
+
+model XPTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model StudyGroup {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     User     @relation("GroupOwner", fields: [ownerId], references: [id])
+  deletedAt DateTime? // Soft Delete
+  
+  members   User[]   @relation("GroupMembers")
+  messages  Message[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model ForumPost {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  tags      String[]
+  upvotes   Int      @default(0)
+  createdAt DateTime @default(now())
+  deletedAt DateTime? // Soft Delete
+
+  replies   ForumReply[]
+}
+
+model ForumReply {
+  id            String   @id @default(cuid())
+  postId        String
+  post          ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  content       String
+  isAIGenerated Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  deletedAt     DateTime? // Soft Delete
+}
+
+model AIConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Json[]   // [{ role: "user" | "assistant", content: "..." }]
+  context   String?
+  model     String   @default("gpt")
+  tokensUsed Int     @default(0)
+  createdAt DateTime @default(now())
+}
+
+model PortfolioProject {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  repoUrl     String?
+  demoUrl     String?
+  createdAt   DateTime @default(now())
+}
+
+
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // E.g., SYSTEM, ACHIEVEMENT, MESSAGE
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  resource  String
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      String   // FREE, PRO, ENTERPRISE
+  status    String   // ACTIVE, CANCELED, PAST_DUE
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+}
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g. "ip:192.168.1.1" or "user:cuid"
+  points    Int      @default(0)
+  expiresAt DateTime
+}

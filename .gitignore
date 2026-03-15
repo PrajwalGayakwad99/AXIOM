@@ -1,0 +1,109 @@
+# ============================================
+# DEPENDENCIES - Never push these
+# ============================================
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+
+# ============================================
+# NEXT.JS BUILD OUTPUT - Generated files
+# ============================================
+.next/
+**/.next/
+out/
+**/out/
+build/
+**/build/
+dist/
+**/dist/
+
+# ============================================
+# ENVIRONMENT FILES - Contains secrets
+# ============================================
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test.local
+.env.production
+.env.production.local
+**/.env
+**/.env.local
+**/.env.production
+
+# ============================================
+# PRISMA GENERATED - Auto generated
+# ============================================
+**/prisma/migrations/
+**/generated/
+**/@prisma/
+
+# ============================================
+# TURBOREPO CACHE
+# ============================================
+.turbo/
+**/.turbo/
+
+# ============================================
+# PACKAGE MANAGER LOCKS (keep only one)
+# ============================================
+# Uncomment the ones you do NOT use:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ============================================
+# EDITOR FILES
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ============================================
+# LOGS
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ============================================
+# TESTING
+# ============================================
+coverage/
+**/coverage/
+.nyc_output
+
+# ============================================
+# TYPESCRIPT
+# ============================================
+*.tsbuildinfo
+next-env.d.ts
+
+# ============================================
+# VERCEL
+# ============================================
+.vercel
+
+# ============================================
+# DOCKER
+# ============================================
+.dockerignore
+
+# ============================================
+# OS FILES
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
