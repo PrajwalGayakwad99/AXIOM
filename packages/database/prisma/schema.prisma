@@ -50,6 +50,7 @@ model User {
   ownedCourses    Course[]        @relation("TeacherCourses")
   ownedGroups     StudyGroup[]    @relation("GroupOwner")
   studyGroups     StudyGroup[]    @relation("GroupMembers")
+  @@index([role])
 }
 
 model UserSession {
@@ -96,10 +97,20 @@ model Topic {
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title         String
   order         Int
-  prerequisites String[] // IDs of prerequisite topics
   deletedAt     DateTime? // Soft Delete
 
   lessons       Lesson[]
+  prerequisites  TopicPrerequisite[] @relation("TopicDependsOn")
+  requiredFor    TopicPrerequisite[] @relation("TopicRequiredBy")
+}
+
+model TopicPrerequisite {
+  topicId        String
+  prerequisiteId String
+  topic          Topic  @relation("TopicDependsOn", fields: [topicId], references: [id], onDelete: Cascade)
+  prerequisite   Topic  @relation("TopicRequiredBy", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  @@id([topicId, prerequisiteId])
+  @@index([prerequisiteId])
 }
 
 model Lesson {
@@ -134,6 +145,8 @@ model Submission {
   status      String   // PASSED, FAILED, PENDING
   score       Int      @default(0)
   createdAt   DateTime @default(now())
+  @@index([userId, challengeId])
+  @@index([userId, status])
 }
 
 model CodeExecution {
@@ -175,6 +188,7 @@ model XPTransaction {
   amount    Int
   reason    String
   createdAt DateTime @default(now())
+  @@index([userId, createdAt])
 }
 
 model StudyGroup {
@@ -228,11 +242,22 @@ model AIConversation {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  Json[]   // [{ role: "user" | "assistant", content: "..." }]
   context   String?
   model     String   @default("gpt")
   tokensUsed Int     @default(0)
   createdAt DateTime @default(now())
+  messages  AIMessage[]
+}
+
+model AIMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String         @db.Text
+  tokenCount     Int?
+  createdAt      DateTime       @default(now())
+  @@index([conversationId, createdAt])
 }
 
 model PortfolioProject {
