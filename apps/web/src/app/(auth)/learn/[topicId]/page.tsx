@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -279,15 +279,29 @@ export default function LessonPage({
   params: { topicId: string };
 }) {
   const { topicId } = params;
-  const lesson = topicLessons[topicId] || topicLessons["default"];
+  const [lesson, setLesson] = useState<any>(null);
+  const [code, setCode] = useState("");
 
-  const [code, setCode] = useState(lesson.starterCode);
+  useEffect(() => {
+    fetch(`/api/learn/${topicId}`)
+      .then((r) => r.json())
+      .then(setLesson)
+      .catch(() => setLesson(null));
+  }, [topicId]);
+
+  useEffect(() => {
+    if (lesson?.starterCode) {
+      setCode(lesson.starterCode);
+    }
+  }, [lesson]);
   const [output, setOutput] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showVis, setShowVis] = useState(true);
   const [visStep, setVisStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+
+  if (!lesson) return <div className="p-8">Loading...</div>;
 
   const currentVis = lesson.visualization.steps[visStep];
 
@@ -350,7 +364,7 @@ export default function LessonPage({
             Learning Objectives
           </h3>
           <ul className="space-y-1.5">
-            {lesson.objectives.map((obj, i) => (
+            {lesson.objectives.map((obj: string, i: number) => (
               <motion.li
                 key={i}
                 initial={{ opacity: 0, x: -10 }}
@@ -368,7 +382,7 @@ export default function LessonPage({
         {/* Lesson content (markdown-like) */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="prose prose-invert prose-sm max-w-none">
-            {lesson.content.split("\n").map((line, i) => {
+            {lesson.content.split("\n").map((line: string, i: number) => {
               if (line.startsWith("## ")) {
                 return (
                   <h2
@@ -573,7 +587,7 @@ export default function LessonPage({
                     <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                       Variables
                     </span>
-                    {currentVis.variables.map((v, i) => (
+                    {currentVis.variables.map((v: any, i: number) => (
                       <motion.div
                         key={`${visStep}-${i}`}
                         initial={{ opacity: 0, x: -10 }}
@@ -591,7 +605,7 @@ export default function LessonPage({
 
                   {/* Node chain visualization */}
                   <div className="flex-1 flex items-center justify-center gap-2">
-                    {currentVis.highlight.map((nodeIdx, i) => (
+                    {currentVis.highlight.map((nodeIdx: number, i: number) => (
                       <motion.div
                         key={`${visStep}-node-${i}`}
                         initial={{ scale: 0, opacity: 0 }}

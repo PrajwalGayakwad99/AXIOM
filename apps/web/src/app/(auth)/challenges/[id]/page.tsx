@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -22,107 +22,6 @@ import {
   Trophy,
 } from "lucide-react";
 import { MonacoEditor } from "@/components/editor/MonacoEditor";
-
-// ─────────────────────────────────────────────
-// Mock challenge data
-// ─────────────────────────────────────────────
-
-const challengeData: Record<
-  string,
-  {
-    title: string;
-    difficulty: "EASY" | "MEDIUM" | "HARD";
-    xpReward: number;
-    description: string;
-    examples: { input: string; output: string; explanation?: string }[];
-    constraints: string[];
-    starterCode: Record<string, string>;
-    hints: string[];
-    testCases: { input: string; expected: string }[];
-  }
-> = {
-  c1: {
-    title: "Two Sum",
-    difficulty: "EASY",
-    xpReward: 15,
-    description:
-      "Given an array of integers `nums` and an integer `target`, return **indices** of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have **exactly one solution**, and you may not use the same element twice.\n\nYou can return the answer in any order.",
-    examples: [
-      {
-        input: "nums = [2,7,11,15], target = 9",
-        output: "[0,1]",
-        explanation: "Because nums[0] + nums[1] == 9, we return [0, 1].",
-      },
-      {
-        input: "nums = [3,2,4], target = 6",
-        output: "[1,2]",
-      },
-      {
-        input: "nums = [3,3], target = 6",
-        output: "[0,1]",
-      },
-    ],
-    constraints: [
-      "2 ≤ nums.length ≤ 10⁴",
-      "-10⁹ ≤ nums[i] ≤ 10⁹",
-      "-10⁹ ≤ target ≤ 10⁹",
-      "Only one valid answer exists.",
-    ],
-    starterCode: {
-      python: `def two_sum(nums, target):
-    """
-    :type nums: List[int]
-    :type target: int
-    :rtype: List[int]
-    """
-    # Your code here
-    pass
-
-# Test
-print(two_sum([2, 7, 11, 15], 9))
-`,
-      javascript: `function twoSum(nums, target) {
-    // Your code here
-}
-
-// Test
-console.log(twoSum([2, 7, 11, 15], 9));
-`,
-    },
-    hints: [
-      "Think about what value you need to find for each element to reach the target.",
-      "Can you use a hash map to store values you've already seen?",
-      "For each number, check if (target - number) exists in the hash map.",
-    ],
-    testCases: [
-      { input: "[2,7,11,15], 9", expected: "[0,1]" },
-      { input: "[3,2,4], 6", expected: "[1,2]" },
-      { input: "[3,3], 6", expected: "[0,1]" },
-      { input: "[1,5,8,3], 4", expected: "[0,3]" },
-    ],
-  },
-  default: {
-    title: "Coding Challenge",
-    difficulty: "MEDIUM",
-    xpReward: 30,
-    description:
-      "Solve this coding challenge by implementing the required function.\n\nRead the examples carefully and make sure your solution handles all edge cases.",
-    examples: [
-      {
-        input: "Example input",
-        output: "Example output",
-        explanation: "Example explanation",
-      },
-    ],
-    constraints: ["Standard constraints apply"],
-    starterCode: {
-      python: `# Your solution here\ndef solve():\n    pass\n`,
-      javascript: `// Your solution here\nfunction solve() {\n}\n`,
-    },
-    hints: ["Think about the problem step by step."],
-    testCases: [{ input: "test", expected: "result" }],
-  },
-};
 
 // ─────────────────────────────────────────────
 // Difficulty badge
@@ -152,10 +51,22 @@ export default function ChallengeSolverPage({
   params: { id: string };
 }) {
   const { id } = params;
-  const challenge = challengeData[id] || challengeData["default"];
-
+  const [challenge, setChallenge] = useState<any>(null);
   const [language, setLanguage] = useState<"python" | "javascript">("python");
-  const [code, setCode] = useState(challenge.starterCode.python);
+  const [code, setCode] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/challenges/${id}`)
+      .then((r) => r.json())
+      .then(setChallenge)
+      .catch(() => setChallenge(null));
+  }, [id]);
+
+  useEffect(() => {
+    if (challenge?.starterCode?.[language]) {
+      setCode(challenge.starterCode[language]);
+    }
+  }, [challenge, language]);
   const [output, setOutput] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -200,7 +111,7 @@ export default function ChallengeSolverPage({
     await new Promise((r) => setTimeout(r, 2000));
 
     // Mock results — first 3 pass, last one fails (for demo)
-    const results = challenge.testCases.map((tc, i) => ({
+    const results = challenge.testCases.map((tc: any, i: number) => ({
       passed: i < 3,
       input: tc.input,
       expected: tc.expected,
@@ -208,7 +119,7 @@ export default function ChallengeSolverPage({
     }));
 
     setTestResults(results);
-    const allPassed = results.every((r) => r.passed);
+    const allPassed = results.every((r: any) => r.passed);
     setIsAccepted(allPassed);
     setIsSubmitting(false);
   }, [challenge.testCases]);
@@ -227,6 +138,8 @@ export default function ChallengeSolverPage({
   };
 
   const passedCount = testResults?.filter((r) => r.passed).length ?? 0;
+
+  if (!challenge) return <div className="p-8">Loading...</div>;
 
   return (
     <div className="flex h-[calc(100vh-3.5rem-3rem)] gap-0 -m-6">
@@ -255,7 +168,7 @@ export default function ChallengeSolverPage({
         <div className="flex-1 overflow-y-auto p-4 space-y-5">
           {/* Problem text */}
           <div>
-            {challenge.description.split("\n").map((line, i) => {
+            {challenge.description.split("\n").map((line: string, i: number) => {
               if (line.trim() === "") return <div key={i} className="h-2" />;
               return (
                 <p
@@ -282,7 +195,7 @@ export default function ChallengeSolverPage({
             <h3 className="text-xs font-semibold text-white uppercase tracking-wider">
               Examples
             </h3>
-            {challenge.examples.map((ex, i) => (
+            {challenge.examples.map((ex: any, i: number) => (
               <div
                 key={i}
                 className="rounded-lg bg-white/[0.02] border border-white/5 p-3 space-y-1.5"
@@ -313,7 +226,7 @@ export default function ChallengeSolverPage({
               Constraints
             </h3>
             <ul className="space-y-1">
-              {challenge.constraints.map((c, i) => (
+              {challenge.constraints.map((c: string, i: number) => (
                 <li
                   key={i}
                   className="text-[10px] text-muted-foreground flex items-start gap-1.5"
@@ -343,7 +256,7 @@ export default function ChallengeSolverPage({
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden mt-2 space-y-2"
                 >
-                  {challenge.hints.map((hint, i) => (
+                  {challenge.hints.map((hint: string, i: number) => (
                     <div key={i}>
                       {revealedHints.includes(i) ? (
                         <motion.div
