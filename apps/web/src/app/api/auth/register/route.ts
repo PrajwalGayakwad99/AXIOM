@@ -2,14 +2,18 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
-import { sanitizeInput } from "@/lib/sanitize"
 
 const RegisterSchema = z.object({
-  name:     z.string().min(2).max(50),
-  email:    z.string().email().toLowerCase(),
-  password: z.string().min(8).max(128)
-             .regex(/[A-Z]/, "Must contain uppercase letter")
-             .regex(/[0-9]/, "Must contain number"),
+  name:            z.string().min(2).max(50),
+  email:           z.string().email().toLowerCase(),
+  password:        z.string().min(8).max(128)
+                    .regex(/[A-Z]/, "Must contain uppercase letter")
+                    .regex(/[0-9]/, "Must contain number"),
+  confirmPassword: z.string(),
+  role:            z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 })
 
 export async function POST(req: NextRequest) {
@@ -26,19 +30,23 @@ export async function POST(req: NextRequest) {
 
     const parsed = RegisterSchema.safeParse(body)
     if (!parsed.success) {
-      return Response.json(
-        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      )
+      const firstError = parsed.error.flatten().fieldErrors
+      const firstMessage = Object.values(firstError)[0]?.[0] || "Validation failed"
+      return Response.json({ error: firstMessage }, { status: 400 })
     }
 
     const { name, email, password } = parsed.data
-    const cleanName  = sanitizeInput(name)
-    const cleanEmail = sanitizeInput(email)
+    const cleanEmail = email.trim().toLowerCase()
+    const cleanName  = name.trim()
 
-    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } })
+    const existing = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+    })
     if (existing) {
-      return Response.json({ error: "Email already registered" }, { status: 409 })
+      return Response.json(
+        { error: "An account with this email already exists" },
+        { status: 409 }
+      )
     }
 
     const hashedPassword = await bcrypt.hash(password, 12)
@@ -53,9 +61,15 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return Response.json({ success: true, message: "Account created successfully" })
+    return Response.json({
+      success: true,
+      message: "Account created successfully! You can now sign in.",
+    })
   } catch (error) {
     console.error("[register] error:", error)
-    return Response.json({ error: "Something went wrong" }, { status: 500 })
+    return Response.json(
+      { error: "Something went wrong. Please try again." },
+      { status: 500 }
+    )
   }
 }

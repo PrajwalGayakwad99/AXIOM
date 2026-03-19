@@ -18,6 +18,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const errorUrl = searchParams.get("error");
+  const registered = searchParams.get("registered");
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -95,6 +96,12 @@ function LoginContent() {
         {/* Card */}
         <motion.div variants={fadeUp} className="bg-white/[0.02] border border-white/5 backdrop-blur-3xl rounded-2xl p-6 shadow-2xl relative">
           
+          {registered && (
+            <div className="mb-4 p-3 bg-green-900/50 border border-green-700 rounded-lg text-green-400 text-sm text-center">
+              Account created successfully! Please sign in.
+            </div>
+          )}
+
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2">
               <span className="text-red-400 text-sm">{errorMsg}</span>

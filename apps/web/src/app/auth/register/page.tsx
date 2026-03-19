@@ -1,403 +1,232 @@
-"use client";
+"use client"
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  Sparkles,
-  Mail,
-  Lock,
-  User,
-  ArrowRight,
-  Loader2,
-  Eye,
-  EyeOff,
-  Check,
-  X,
-} from "lucide-react";
-import { RegisterFormSchema, type RegisterFormData } from "@/types";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { signIn } from "next-auth/react"
+import { z } from "zod"
 
-const fadeUp = {
-  initial: { opacity: 0, y: 20, filter: "blur(10px)" },
-  animate: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.5 },
-  },
-};
-
-const stagger = { animate: { transition: { staggerChildren: 0.08 } } };
-
-function PasswordStrengthIndicator({ password }: { password: string }) {
-  const checks = [
-    { label: "8+ characters", met: password.length >= 8 },
-    { label: "Uppercase letter", met: /[A-Z]/.test(password) },
-    { label: "Number", met: /[0-9]/.test(password) },
-  ];
-
-  const strength = checks.filter((c) => c.met).length;
-  const strengthPercent = (strength / checks.length) * 100;
-  const strengthColor =
-    strength === 0
-      ? "bg-zinc-700"
-      : strength === 1
-        ? "bg-rose-500"
-        : strength === 2
-          ? "bg-amber-500"
-          : "bg-emerald-500";
-
-  if (!password) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0 }}
-      className="space-y-2 pt-1"
-    >
-      <div className="h-1 flex rounded-full bg-white/5 overflow-hidden">
-        <motion.div
-          className={`h-full rounded-full ${strengthColor}`}
-          initial={{ width: "0%" }}
-          animate={{ width: `${strengthPercent}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {checks.map((check) => (
-          <span
-            key={check.label}
-            className={`flex items-center gap-1 text-[10px] transition-colors font-medium ${
-              check.met ? "text-emerald-400" : "text-muted-foreground/50"
-            }`}
-          >
-            {check.met ? (
-              <Check className="w-3 h-3" />
-            ) : (
-              <X className="w-3 h-3" />
-            )}
-            {check.label}
-          </span>
-        ))}
-      </div>
-    </motion.div>
-  );
-}
+const RegisterSchema = z.object({
+  name:            z.string().min(2, "Name must be at least 2 characters"),
+  email:           z.string().email("Please enter a valid email"),
+  password:        z.string()
+                    .min(8, "Password must be at least 8 characters")
+                    .regex(/[A-Z]/, "Must contain at least one uppercase letter")
+                    .regex(/[0-9]/, "Must contain at least one number"),
+  confirmPassword: z.string(),
+}).refine((d) => d.password === d.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+})
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const router = useRouter()
+  const [formData, setFormData] = useState({
+    name: "", email: "", password: "", confirmPassword: "",
+  })
+  const [errors, setErrors]     = useState<Record<string, string>>({})
+  const [apiError, setApiError] = useState("")
+  const [success, setSuccess]   = useState("")
+  const [loading, setLoading]   = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(RegisterFormSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
-  });
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" }))
+    setApiError("")
+  }
 
-  const watchPassword = watch("password", "");
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setApiError("")
+    setSuccess("")
 
-  const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
-    setErrorMsg("");
+    // Client-side validation
+    const result = RegisterSchema.safeParse(formData)
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) fieldErrors[err.path[0] as string] = err.message
+      })
+      setErrors(fieldErrors)
+      return
+    }
+
+    setLoading(true)
     try {
       const res = await fetch("/api/auth/register", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          password: data.password,
-          role: "STUDENT",
+        body:    JSON.stringify({
+          name:            formData.name,
+          email:           formData.email,
+          password:        formData.password,
+          confirmPassword: formData.confirmPassword,
+          role:            "STUDENT",
         }),
-      });
+      })
 
-      if (res.ok) {
-        const loginRes = await signIn("credentials", {
-          email: data.email,
-          password: data.password,
-          redirect: false,
-        });
-        
-        if (loginRes?.error) {
-           setErrorMsg(loginRes.error);
-        } else {
-           router.push("/dashboard");
-           router.refresh();
-        }
-      } else {
-        const err = await res.json();
-        setErrorMsg(err.message || "Registration failed");
+      const data = await res.json()
+
+      if (!res.ok) {
+        setApiError(data.error || "Registration failed. Please try again.")
+        return
       }
+
+      // Success
+      setSuccess("Account created! Redirecting to login...")
+      setTimeout(() => {
+        router.push("/auth/login?registered=true")
+      }, 1500)
     } catch {
-      setErrorMsg("An unexpected error occurred");
+      setApiError("Network error. Please check your connection and try again.")
     } finally {
-      setIsLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  async function handleOAuth(provider: "google" | "github") {
+    await signIn(provider, { callbackUrl: "/auth/callback" })
+  }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center p-4 py-12 relative overflow-hidden bg-gradient-to-b from-surface-primary to-[#050508]">
-      {/* Background Effects */}
-      <div className="glow-orb glow-orb-purple w-[500px] h-[500px] -top-60 -right-40 opacity-30 pointer-events-none absolute rounded-full blur-3xl mix-blend-screen" />
-      <div className="glow-orb glow-orb-blue w-[400px] h-[400px] -bottom-40 -left-40 opacity-30 pointer-events-none absolute rounded-full blur-3xl mix-blend-screen" />
-      <div className="absolute inset-0 grid-bg opacity-20 pointer-events-none" />
-
-      <motion.div
-        variants={stagger}
-        initial="initial"
-        animate="animate"
-        className="relative z-10 w-full max-w-lg"
-      >
+    <div className="min-h-screen flex items-center justify-center bg-black px-4">
+      <div className="w-full max-w-md">
         {/* Logo */}
-        <motion.div variants={fadeUp} className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-blue to-brand-purple flex items-center justify-center text-white font-bold shadow-[0_0_20px_rgba(56,189,248,0.3)]">
-              CV
-            </div>
-            <span className="text-xl font-bold text-white tracking-tight">
-              CodeVision <span className="text-brand-blue">AI</span>
-            </span>
-          </Link>
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-            Create your account
-          </h1>
-          <p className="text-sm text-muted-foreground/80">
-            Start your journey to mastering code with AI
-          </p>
-        </motion.div>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 rounded-xl mb-3">
+            <span className="text-white font-bold text-lg">A</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white">Create your account</h1>
+          <p className="text-gray-400 mt-1 text-sm">Start your learning journey today</p>
+        </div>
 
-        {/* Card */}
-        <motion.div variants={fadeUp} className="bg-white/[0.02] border border-white/5 backdrop-blur-3xl rounded-2xl p-6 shadow-2xl relative">
-          
-          {errorMsg && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2">
-              <span className="text-red-400 text-sm">{errorMsg}</span>
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
+
+          {/* Success message */}
+          {success && (
+            <div className="mb-4 p-3 bg-green-900/50 border border-green-700 rounded-lg text-green-400 text-sm text-center">
+              {success}
             </div>
           )}
 
-          {/* OAuth Buttons */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <button
-              type="button"
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-              className="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-white text-slate-900 hover:bg-slate-100 transition-colors font-medium border border-transparent shadow-sm text-sm"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              Google
-            </button>
-            <button
-              type="button"
-              onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
-              className="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-[#18181B] text-white hover:bg-[#27272A] transition-colors font-medium border border-white/10 shadow-sm text-sm"
-            >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-              </svg>
-              GitHub
-            </button>
-          </div>
+          {/* API error */}
+          {apiError && (
+            <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-400 text-sm text-center">
+              {apiError}
+            </div>
+          )}
 
-          {/* Divider */}
+          {/* OAuth buttons */}
+          <button
+            onClick={() => handleOAuth("google")}
+            type="button"
+            className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 font-medium py-3 px-4 rounded-xl mb-3 hover:bg-gray-100 transition"
+          >
+            <svg width="18" height="18" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <button
+            onClick={() => handleOAuth("github")}
+            type="button"
+            className="w-full flex items-center justify-center gap-3 bg-gray-800 text-white font-medium py-3 px-4 rounded-xl mb-6 hover:bg-gray-700 transition border border-gray-700"
+          >
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            Continue with GitHub
+          </button>
+
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
+              <div className="w-full border-t border-gray-700"></div>
             </div>
-            <div className="relative flex justify-center">
-              <span className="px-3 bg-[#0A0A0F] text-[10px] text-muted-foreground uppercase tracking-widest font-medium rounded-full border border-white/5">
-                or
-              </span>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-3 bg-gray-900 text-gray-500">OR</span>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Name Field */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Full Name
-                </label>
-                <div className="relative group">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-brand-blue transition-colors" />
-                  <input
-                    {...register("name")}
-                    type="text"
-                    placeholder="John Doe"
-                    className="w-full bg-white/[0.03] border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 transition-all"
-                  />
-                </div>
-                {errors.name && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-[11px] text-red-400 flex items-center gap-1"
-                  >
-                    <X className="w-3 h-3" />
-                    {errors.name.message}
-                  </motion.p>
-                )}
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Email
-                </label>
-                <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-brand-blue transition-colors" />
-                  <input
-                    {...register("email")}
-                    type="email"
-                    placeholder="you@example.com"
-                    className="w-full bg-white/[0.03] border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 transition-all"
-                  />
-                </div>
-                {errors.email && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-[11px] text-red-400 flex items-center gap-1"
-                  >
-                    <X className="w-3 h-3" />
-                    {errors.email.message}
-                  </motion.p>
-                )}
-              </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Full Name</label>
+              <input
+                name="name"
+                type="text"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="John Doe"
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500"
+              />
+              {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
             </div>
 
-            {/* Password Field */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Password
-              </label>
-              <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-brand-blue transition-colors" />
-                <input
-                  {...register("password")}
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-lg pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-white transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {errors.password && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-[11px] text-red-400 flex items-center gap-1"
-                >
-                  <X className="w-3 h-3" />
-                  {errors.password.message}
-                </motion.p>
-              )}
-              <AnimatePresence>
-                <PasswordStrengthIndicator password={watchPassword} />
-              </AnimatePresence>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Email</label>
+              <input
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500"
+              />
+              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
             </div>
 
-            {/* Confirm Password Field */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Confirm Password
-              </label>
-              <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-brand-blue transition-colors" />
-                <input
-                  {...register("confirmPassword")}
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-lg pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-white transition-colors"
-                >
-                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-[11px] text-red-400 flex items-center gap-1"
-                >
-                  <X className="w-3 h-3" />
-                  {errors.confirmPassword.message}
-                </motion.p>
-              )}
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Password</label>
+              <input
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Min 8 chars, 1 uppercase, 1 number"
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500"
+              />
+              {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
             </div>
 
-            {/* Submit */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Confirm Password</label>
+              <input
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Repeat your password"
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500"
+              />
+              {errors.confirmPassword && <p className="text-red-400 text-xs mt-1">{errors.confirmPassword}</p>}
+            </div>
+
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full py-2.5 text-sm font-medium text-white rounded-lg bg-gradient-to-r from-brand-blue to-brand-purple hover:opacity-90 transition-opacity mt-6 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(56,189,248,0.4)]"
+              disabled={loading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition"
             >
-              <span className="flex items-center justify-center gap-2">
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    Create Account
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </span>
+              {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
-          
-        </motion.div>
 
-        {/* Footer */}
-        <motion.div
-          variants={fadeUp}
-          className="text-center space-y-4 mt-6"
-        >
-          <p className="text-xs text-muted-foreground/60">
-            Are you a teacher or admin? Contact your administrator.
+          <p className="text-center text-gray-500 text-xs mt-6">
+            Are you a teacher or admin?{" "}
+            <span className="text-gray-400">Contact your administrator.</span>
           </p>
-          <p className="text-sm text-muted-foreground font-medium">
-            Already have an account?{" "}
-            <Link
-              href="/auth/login"
-              className="text-brand-blue hover:text-brand-purple transition-colors bg-clip-text text-transparent bg-gradient-to-r from-brand-blue to-brand-purple"
-            >
-              Sign in
-            </Link>
-          </p>
-        </motion.div>
-      </motion.div>
+        </div>
+
+        <p className="text-center text-gray-500 text-sm mt-6">
+          Already have an account?{" "}
+          <Link href="/auth/login" className="text-indigo-400 hover:text-indigo-300">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
-  );
+  )
 }
