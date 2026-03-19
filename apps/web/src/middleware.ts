@@ -1,54 +1,50 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-const routePermissions: Record<string, string[]> = {
-  "/dashboard": ["STUDENT"],
-  "/learn": ["STUDENT"],
-  "/playground": ["STUDENT"],
-  "/challenges": ["STUDENT"],
-  "/leaderboard": ["STUDENT"],
-  "/ai-tutor": ["STUDENT"],
-  "/community": ["STUDENT", "TEACHER", "ADMIN"],
-  "/groups": ["STUDENT", "TEACHER", "ADMIN"],
-  "/portfolio": ["STUDENT", "TEACHER", "ADMIN"],
-  "/teacher": ["TEACHER", "ADMIN"],
-  "/admin": ["ADMIN"],
-}
+const PUBLIC_ROUTES = [
+  "/",
+  "/auth/login",
+  "/auth/register",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/verify",
+  "/api/auth",
+]
 
-const roleDashboards: Record<string, string> = {
-  STUDENT: "/dashboard",
-  TEACHER: "/teacher/dashboard",
-  ADMIN: "/admin/dashboard",
-}
+const TEACHER_ROUTES = ["/teacher"]
+const ADMIN_ROUTES   = ["/admin"]
 
 export default auth((req) => {
-  const { nextUrl, auth: session } = req as any
-  const pathname = nextUrl.pathname
-  const isLoggedIn = !!session?.user
-  const role = session?.user?.role ?? "STUDENT"
+  const { pathname } = req.nextUrl
+  const session = req.auth
 
-  const isAuthPage = pathname.startsWith("/auth")
-  if (isAuthPage) {
-    if (isLoggedIn) {
-      return NextResponse.redirect(
-        new URL(roleDashboards[role] ?? "/dashboard", nextUrl)
-      )
-    }
+  // Allow all public routes
+  if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
     return NextResponse.next()
   }
 
-  if (!isLoggedIn) {
-    return NextResponse.redirect(new URL("/auth/login", nextUrl))
+  // Allow public portfolio pages
+  if (pathname.startsWith("/portfolio") && !pathname.startsWith("/portfolio/edit")) {
+    return NextResponse.next()
   }
 
-  for (const [route, allowedRoles] of Object.entries(routePermissions)) {
-    if (pathname.startsWith(route)) {
-      if (!allowedRoles.includes(role)) {
-        return NextResponse.redirect(
-          new URL(roleDashboards[role] ?? "/dashboard", nextUrl)
-        )
-      }
-    }
+  // Not logged in — redirect to login
+  if (!session?.user) {
+    const loginUrl = new URL("/auth/login", req.url)
+    loginUrl.searchParams.set("callbackUrl", pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // Logged in but wrong role — redirect
+  const role = (session.user as any).role
+
+  if (TEACHER_ROUTES.some((r) => pathname.startsWith(r)) && role !== "TEACHER" && role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/dashboard", req.url))
+  }
+
+  if (ADMIN_ROUTES.some((r) => pathname.startsWith(r)) && role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
   return NextResponse.next()
@@ -56,6 +52,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|public).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico).*)",
   ],
 }
