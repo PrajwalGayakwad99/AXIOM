@@ -241,8 +241,6 @@ interface FlowVisualizerProps {
   showPresets?: boolean;
   /** Custom class name */
   className?: string;
-  /** Called when nodes change */
-  onNodesChange?: (nodes: Node[]) => void;
   /** Callback for animation step */
   onStep?: (step: number) => void;
 }

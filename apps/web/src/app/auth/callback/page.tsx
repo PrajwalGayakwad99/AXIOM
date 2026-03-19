@@ -1,51 +1,58 @@
-"use client";
+"use client"
 
-import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { useEffect } from "react"
 
-export default function AuthCallbackPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+function CallbackContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const { data: session, status } = useSession()
 
   useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        // Get the session after OAuth callback
-        const response = await fetch("/api/auth/session");
-        const session = await response.json();
-        
-        if (session?.user) {
-          const role = session.user.role;
-          let redirectUrl = "/dashboard";
-          
-          if (role === "ADMIN") {
-            redirectUrl = "/admin/dashboard";
-          } else if (role === "TEACHER") {
-            redirectUrl = "/teacher/dashboard";
-          } else if (role === "RECRUITER") {
-            redirectUrl = "/recruiter/dashboard";
-          }
-          
-          router.push(redirectUrl);
-        } else {
-          router.push("/auth/login");
-        }
-      } catch (error) {
-        console.error("Auth callback error:", error);
-        router.push("/auth/login");
-      }
-    };
+    if (status === "loading") return
 
-    handleCallback();
-  }, [router]);
+    if (!session?.user) {
+      router.push("/auth/login")
+      return
+    }
+
+    const role = (session.user as any).role
+    const callbackUrl = searchParams.get("callbackUrl")
+
+    if (callbackUrl && callbackUrl.startsWith("/")) {
+      router.push(callbackUrl)
+      return
+    }
+
+    if (role === "ADMIN") router.push("/admin/dashboard")
+    else if (role === "TEACHER") router.push("/teacher/dashboard")
+    else if (role === "RECRUITER") router.push("/recruiter/dashboard")
+    else router.push("/dashboard")
+  }, [session, status, router, searchParams])
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-b from-surface-primary to-[#050508]">
+    <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center">
-        <Loader2 className="w-8 h-8 text-brand-blue animate-spin mx-auto mb-4" />
-        <p className="text-white">Completing authentication...</p>
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-400 text-sm">Redirecting...</p>
       </div>
     </div>
-  );
+  )
+}
+
+export default function CallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400 text-sm">Loading...</p>
+        </div>
+      </div>
+    }>
+      <CallbackContent />
+    </Suspense>
+  )
 }
