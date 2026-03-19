@@ -51,14 +51,14 @@ export default function TeacherDashboard() {
   const heatmapData = Array.from({ length: 14 * 7 }, (_, i) => Math.random() > 0.3 ? Math.floor(Math.random() * 100) : 0);
 
   return (
-    <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6 max-w-7xl mx-auto pb-12">
+    <motion.div variants={stagger} initial="initial" animate="animate" className="w-full min-h-screen p-6 space-y-6">
       
       {/* SECTION 1 - Welcome Banner */}
       <motion.div variants={fadeUp} className="glass-card p-8 rounded-2xl border border-white/5 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-purple/10 rounded-full blur-[100px] -mt-40 -mr-40 pointer-events-none" />
         <div className="relative z-10 space-y-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-white">Welcome back, {name}</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Welcome back, {name}</h1>
             <span className="bg-brand-purple/20 border border-brand-purple/30 text-brand-purple text-[10px] uppercase font-bold px-2 py-1 rounded-full flex items-center gap-1">
               <BookOpen className="w-3 h-3" /> Teacher
             </span>
@@ -93,7 +93,7 @@ export default function TeacherDashboard() {
           { icon: PlayCircle, label: "Avg Completion", value: `${stats.avgCompletion}%`, color: "text-yellow-400", bg: "bg-yellow-400/10" },
           { icon: FileEdit, label: "Pending Reviews", value: stats.pendingReviews, color: stats.pendingReviews > 0 ? "text-rose-400" : "text-emerald-400", bg: stats.pendingReviews > 0 ? "bg-rose-500/10" : "bg-emerald-500/10", glow: stats.pendingReviews > 0 },
         ].map((stat, i) => (
-          <motion.div key={i} variants={fadeUp} className={`glass-card p-5 rounded-2xl flex flex-col justify-center border border-white/5 hover:bg-white/5 transition-colors relative overflow-hidden`}>
+          <motion.div key={i} variants={fadeUp} className={`glass-card p-5 rounded-2xl flex flex-col justify-center border border-white/5 hover:scale-105 transition-transform duration-200 cursor-default hover:border-indigo-500/50 relative overflow-hidden`}>
             {stat.glow && <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/20 blur-xl rounded-full" />}
             <div className="flex items-center gap-3 mb-2 relative z-10">
               <div className={`p-2 rounded-xl ${stat.bg}`}>

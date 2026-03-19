@@ -65,13 +65,13 @@ export default function StudentDashboard() {
   }));
 
   return (
-    <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6 max-w-7xl mx-auto pb-12">
+    <motion.div variants={stagger} initial="initial" animate="animate" className="w-full min-h-screen p-6 space-y-6">
       
       {/* SECTION 1 - Welcome Hero */}
-      <motion.div variants={fadeUp} className="glass-card p-8 rounded-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <motion.div variants={fadeUp} className="glass-card p-8 rounded-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/10">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-blue/10 rounded-full blur-[100px] -mt-40 -mr-40 pointer-events-none" />
         <div className="relative z-10 space-y-2">
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
             Good {timeOfDay}, {name}! <span className="inline-block animate-wave">👋</span>
           </h1>
           <p className="text-muted-foreground flex items-center gap-2">
@@ -98,7 +98,7 @@ export default function StudentDashboard() {
           { icon: Trophy, label: "Global Rank", value: `#${stats.globalRank}`, color: "text-brand-purple", bg: "bg-brand-purple/10", border: "border-brand-purple/20" },
           { icon: Book, label: "Lessons Done", value: stats.lessonsDone, color: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
         ].map((stat, i) => (
-          <motion.div key={i} variants={fadeUp} className={`glass-card p-5 rounded-2xl flex flex-col justify-center border-t border-l ${stat.border} hover:bg-white/5 transition-colors`}>
+          <motion.div key={i} variants={fadeUp} className={`glass-card p-5 rounded-2xl flex flex-col justify-center border-t border-l ${stat.border} hover:scale-105 transition-transform duration-200 cursor-default hover:border-indigo-500/50`}>
             <div className="flex items-center gap-3 mb-2">
               <div className={`p-2 rounded-xl ${stat.bg}`}>
                 <stat.icon className={`w-4 h-4 ${stat.color}`} />
@@ -153,7 +153,7 @@ export default function StudentDashboard() {
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Up Next (15 min)</p>
                 <p className="text-sm text-white font-medium">Advanced React Hooks: useMemo & useCallback</p>
               </div>
-              <button className="btn-glow w-full py-2.5 text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+              <button className="btn-glow w-full py-2.5 text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(56,189,248,0.3)] active:scale-95 transition-all duration-150 hover:brightness-110">
                 Continue Learning <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -209,7 +209,7 @@ export default function StudentDashboard() {
           </div>
         </div>
         <div className="p-6 md:p-8 bg-black/20 flex items-center justify-center md:border-l border-white/5 relative z-10 w-full md:w-auto">
-          <button className="w-full md:w-auto px-6 py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-slate-100 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.1)] flex items-center justify-center gap-2">
+          <button className="w-full md:w-auto px-6 py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-slate-100 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.1)] flex items-center justify-center gap-2 active:scale-95 transition-all duration-150 hover:brightness-110">
             Solve Challenge <Sword className="w-4 h-4" />
           </button>
         </div>

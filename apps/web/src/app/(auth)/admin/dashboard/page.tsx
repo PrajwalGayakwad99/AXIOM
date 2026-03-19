@@ -59,7 +59,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6 max-w-7xl mx-auto pb-12">
+    <motion.div variants={stagger} initial="initial" animate="animate" className="w-full min-h-screen p-6 space-y-6">
       
       {/* SECTION 1 - System Health Banner */}
       <motion.div variants={fadeUp} className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

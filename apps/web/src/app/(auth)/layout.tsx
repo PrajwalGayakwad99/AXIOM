@@ -19,7 +19,7 @@ export default async function AuthLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-surface-primary">
       <Sidebar role={user.role} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden ml-60">
         <Header user={user} />
         <main className="flex-1 overflow-y-auto p-6 grid-bg noise-overlay">
           {children}

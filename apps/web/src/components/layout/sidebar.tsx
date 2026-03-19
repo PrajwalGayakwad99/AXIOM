@@ -103,7 +103,7 @@ export function Sidebar({ role }: SidebarProps) {
   const initial = userName.charAt(0).toUpperCase();
 
   return (
-    <div className="flex h-screen w-[260px] flex-col border-r border-white/5 bg-[#050508]/80 backdrop-blur-xl shrink-0">
+    <div className="fixed left-0 top-0 h-screen w-60 bg-gray-950 border-r border-gray-800 flex flex-col z-40 shrink-0">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-6 pt-6 pb-8">
         <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-blue to-brand-purple flex items-center justify-center text-white text-sm font-bold shadow-[0_0_15px_rgba(56,189,248,0.3)]">
@@ -116,7 +116,7 @@ export function Sidebar({ role }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 space-y-6 scrollbar-none">
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 scrollbar-none">
         {sections.map((section, idx) => (
           <div key={idx} className="space-y-1">
             <p className="px-3 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-2">
@@ -130,8 +130,8 @@ export function Sidebar({ role }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                    isActive ? "text-white" : "text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                    "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150",
+                    isActive ? "bg-indigo-600 text-white rounded-lg border-l-2 border-indigo-400" : "text-slate-400 hover:bg-gray-800 rounded-lg"
                   )}
                 >
                   {isActive && (
