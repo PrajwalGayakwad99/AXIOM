@@ -6,8 +6,8 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { signOut, useSession } from "next-auth/react";
 import {
-  LayoutDashboard, BookOpen, TerminalSquare, Trophy, Users, Settings, FolderKanban,
-  BarChart, ShieldAlert, Search, MessageSquare, Brain, User, Flame, LogOut, Code, Activity, Server, FileEdit, CheckCircle2
+  LayoutDashboard, BookOpen, TerminalSquare, Trophy, Users, Settings,
+  BarChart, ShieldAlert, MessageSquare, Brain, User, Flame, LogOut, FileEdit, CheckCircle2
 } from "lucide-react";
 
 interface SidebarProps {

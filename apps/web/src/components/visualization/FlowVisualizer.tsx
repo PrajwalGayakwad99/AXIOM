@@ -259,7 +259,6 @@ export function FlowVisualizer({
   showControls = true,
   showPresets = true,
   className = "",
-  onNodesChange: onNodesChangeCallback,
   onStep,
 }: FlowVisualizerProps) {
   // Find preset

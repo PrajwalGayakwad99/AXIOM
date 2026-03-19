@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
 
 const PUBLIC_ROUTES = [
   "/",
@@ -38,7 +37,7 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl)
   }
 
-  const role = (session.user as any).role
+  const role = (session.user as { role?: string }).role
 
   // Wrong role trying to access teacher routes
   if (pathname.startsWith("/teacher") && role !== "TEACHER" && role !== "ADMIN") {

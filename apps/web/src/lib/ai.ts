@@ -275,7 +275,7 @@ export async function getHint(
     });
 
     return JSON.parse(result.content);
-  } catch (err) {
+  } catch (_err) {
     return {
       hint: "Hint system is currently unavailable. Try re-reading the problem statement and thinking about edge cases!",
       level: hintLevel,
