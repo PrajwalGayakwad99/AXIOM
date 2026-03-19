@@ -9,41 +9,49 @@ const PUBLIC_ROUTES = [
   "/auth/forgot-password",
   "/auth/reset-password",
   "/auth/verify",
-  "/api/auth",
+  "/auth/callback",
 ]
-
-const TEACHER_ROUTES = ["/teacher"]
-const ADMIN_ROUTES   = ["/admin"]
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
   const session = req.auth
 
-  // Allow all public routes
-  if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
+  // Allow public routes
+  if (PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(r))) {
+    return NextResponse.next()
+  }
+
+  // Allow NextAuth API routes
+  if (pathname.startsWith("/api/auth")) {
     return NextResponse.next()
   }
 
   // Allow public portfolio pages
-  if (pathname.startsWith("/portfolio") && !pathname.startsWith("/portfolio/edit")) {
+  if (pathname.startsWith("/portfolio") && !pathname.includes("/edit")) {
     return NextResponse.next()
   }
 
-  // Not logged in — redirect to login
+  // Not logged in
   if (!session?.user) {
     const loginUrl = new URL("/auth/login", req.url)
     loginUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // Logged in but wrong role — redirect
   const role = (session.user as any).role
 
-  if (TEACHER_ROUTES.some((r) => pathname.startsWith(r)) && role !== "TEACHER" && role !== "ADMIN") {
+  // Wrong role trying to access teacher routes
+  if (pathname.startsWith("/teacher") && role !== "TEACHER" && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
-  if (ADMIN_ROUTES.some((r) => pathname.startsWith(r)) && role !== "ADMIN") {
+  // Wrong role trying to access admin routes
+  if (pathname.startsWith("/admin") && role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/dashboard", req.url))
+  }
+
+  // Student trying to access recruiter routes
+  if (pathname.startsWith("/recruiter") && role !== "RECRUITER" && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
@@ -52,6 +60,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico|.*\\.webp).*)",
   ],
 }

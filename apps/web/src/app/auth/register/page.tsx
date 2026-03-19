@@ -16,13 +16,10 @@ import {
   Loader2,
   Eye,
   EyeOff,
-  GraduationCap,
-  BookOpen,
-  Shield,
   Check,
   X,
 } from "lucide-react";
-import { RegisterFormSchema, type RegisterFormData, type Role } from "@/types";
+import { RegisterFormSchema, type RegisterFormData } from "@/types";
 
 const fadeUp = {
   initial: { opacity: 0, y: 20, filter: "blur(10px)" },
@@ -35,30 +32,6 @@ const fadeUp = {
 };
 
 const stagger = { animate: { transition: { staggerChildren: 0.08 } } };
-
-const roles: { value: Role; label: string; icon: typeof GraduationCap; description: string; color: string }[] = [
-  {
-    value: "STUDENT",
-    label: "Student",
-    icon: GraduationCap,
-    description: "Learn to code visually",
-    color: "from-blue-500 to-cyan-500",
-  },
-  {
-    value: "TEACHER",
-    label: "Teacher",
-    icon: BookOpen,
-    description: "Create courses & teach",
-    color: "from-emerald-500 to-teal-500",
-  },
-  {
-    value: "ADMIN",
-    label: "Admin",
-    icon: Shield,
-    description: "Manage the platform",
-    color: "from-amber-500 to-orange-500",
-  },
-];
 
 function PasswordStrengthIndicator({ password }: { password: string }) {
   const checks = [
@@ -122,7 +95,6 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role>("STUDENT");
   const [errorMsg, setErrorMsg] = useState("");
 
   const {
@@ -138,7 +110,6 @@ export default function RegisterPage() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "STUDENT",
     },
   });
 
@@ -155,7 +126,7 @@ export default function RegisterPage() {
           name: data.name,
           email: data.email,
           password: data.password,
-          role: data.role,
+          role: "STUDENT",
         }),
       });
 
@@ -264,41 +235,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             
-            {/* Role Selection */}
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">
-                Account Type
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {roles.map((role) => {
-                  const isSelected = selectedRole === role.value;
-                  return (
-                    <button
-                      key={role.value}
-                      type="button"
-                      onClick={() => {
-                        setSelectedRole(role.value);
-                        setValue("role", role.value);
-                      }}
-                      className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-center ${
-                        isSelected
-                          ? "border-brand-blue/50 bg-brand-blue/[0.08]"
-                          : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10"
-                      }`}
-                    >
-                      <div className={`mb-2 w-8 h-8 rounded-full bg-gradient-to-br ${role.color} flex items-center justify-center shadow-lg`}>
-                        <role.icon className="w-4 h-4 text-white" />
-                      </div>
-                      <p className={`text-xs font-medium ${isSelected ? "text-brand-blue" : "text-slate-300"}`}>
-                        {role.label}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Name Field */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
@@ -443,18 +380,23 @@ export default function RegisterPage() {
         </motion.div>
 
         {/* Footer */}
-        <motion.p
+        <motion.div
           variants={fadeUp}
-          className="text-center text-sm text-muted-foreground mt-6 font-medium"
+          className="text-center space-y-4 mt-6"
         >
-          Already have an account?{" "}
-          <Link
-            href="/auth/login"
-            className="text-brand-blue hover:text-brand-purple transition-colors bg-clip-text text-transparent bg-gradient-to-r from-brand-blue to-brand-purple"
-          >
-            Log in
-          </Link>
-        </motion.p>
+          <p className="text-xs text-muted-foreground/60">
+            Are you a teacher or admin? Contact your administrator.
+          </p>
+          <p className="text-sm text-muted-foreground font-medium">
+            Already have an account?{" "}
+            <Link
+              href="/auth/login"
+              className="text-brand-blue hover:text-brand-purple transition-colors bg-clip-text text-transparent bg-gradient-to-r from-brand-blue to-brand-purple"
+            >
+              Sign in
+            </Link>
+          </p>
+        </motion.div>
       </motion.div>
     </div>
   );

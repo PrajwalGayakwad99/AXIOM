@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { Suspense, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -41,7 +41,20 @@ function LoginContent() {
         setErrorMsg("Invalid email or password");
         setIsLoading(false);
       } else {
-        router.push("/dashboard");
+        // Get session to determine role-based redirect
+        const session = await getSession();
+        const role = session?.user?.role;
+        
+        let redirectUrl = "/dashboard";
+        if (role === "ADMIN") {
+          redirectUrl = "/admin/dashboard";
+        } else if (role === "TEACHER") {
+          redirectUrl = "/teacher/dashboard";
+        } else if (role === "RECRUITER") {
+          redirectUrl = "/recruiter/dashboard";
+        }
+        
+        router.push(redirectUrl);
         router.refresh();
       }
     } catch (err) {
@@ -92,7 +105,7 @@ function LoginContent() {
           <div className="flex flex-col gap-3">
             <button
               type="button"
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              onClick={() => signIn("google", { callbackUrl: "/auth/callback" })}
               className="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-white text-slate-900 hover:bg-slate-100 transition-colors font-medium border border-transparent shadow-sm"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -105,7 +118,7 @@ function LoginContent() {
             </button>
             <button
               type="button"
-              onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
+              onClick={() => signIn("github", { callbackUrl: "/auth/callback" })}
               className="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-[#18181B] text-white hover:bg-[#27272A] transition-colors font-medium border border-white/10 shadow-sm"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
