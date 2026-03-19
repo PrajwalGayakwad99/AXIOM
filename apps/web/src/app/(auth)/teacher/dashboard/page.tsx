@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { 
   Users, BookOpen, AlertCircle, FileEdit, Award, Search, Bell, Clock,
   CheckCircle2, Plus, Brain, MessageSquare, TrendingUp, TrendingDown,
-  LayoutGrid, Activity, PlayCircle, Upload, PenTool, Send
+  LayoutGrid, Activity, PlayCircle, Upload, PenTool, Send, Trophy
 } from "lucide-react";
 
 const stagger = { animate: { transition: { staggerChildren: 0.1 } } };

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { code, language } = await request.json();
 
     if (!code || !language) {
@@ -36,8 +42,9 @@ export async function POST(request: Request) {
       status: "simulated",
     });
   } catch (error) {
+    console.error("[execute] error:", error);
     return NextResponse.json(
-      { error: "Execution failed: " + String(error) },
+      { error: "Something went wrong" },
       { status: 500 }
     );
   }

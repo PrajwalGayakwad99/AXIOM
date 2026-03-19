@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Server, Shield, Users, Database, Cpu, Activity,
-  AlertTriangle, Search, Trash2, Edit2, Play, Lock, ChevronRight, UserX, UserPlus, CheckCircle
+  AlertTriangle, Search, Trash2, Edit2, Play, Lock, ChevronRight, UserX, UserPlus, CheckCircle, BookOpen
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Legend

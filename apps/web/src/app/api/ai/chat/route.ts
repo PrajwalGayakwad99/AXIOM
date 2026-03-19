@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { messages } = body;
 
@@ -48,17 +54,18 @@ Keep responses under 150 words unless explaining a complex concept.`,
     }
 
     // All models failed — return helpful fallback
+    console.error("[chat] all models failed:", lastError);
     return NextResponse.json(
       {
         content:
           "I'm currently unable to connect to my AI backend. Please make sure LiteLLM is running on localhost:4000. In the meantime, try breaking your problem into smaller steps!",
-        error: lastError?.message,
       },
       { status: 503 }
     );
   } catch (error) {
+    console.error("[chat] error:", error);
     return NextResponse.json(
-      { content: "Something went wrong processing your request.", error: String(error) },
+      { content: "Something went wrong processing your request." },
       { status: 500 }
     );
   }
